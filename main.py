@@ -33,6 +33,13 @@ def generate_signature(method, path, params={}):
     sorted_params['Signature'] = signature
     return sorted_params
 
+def place_single_order(contract_code, body):
+    path = f'/api/v1/perpetual/products/{contract_code}/order'
+    params = generate_signature('POST', path)
+    url = f"{BASE_URL}{path}?" + urlencode(params)
+    resp = requests.post(url, json=body, timeout=10)
+    return resp.status_code, resp.json()
+
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({'status': 'ok', 'access_key_set': bool(ACCESS_KEY)})
@@ -46,51 +53,52 @@ def place_orders():
 
     for order in orders:
         try:
-            path = f'/api/v1/perpetual/products/{contract_code}/order'
-            params = generate_signature('POST', path)
-            url = f"{BASE_URL}{path}?" + urlencode(params)
-
-            order_type = str(order.get('type', 10))
-            is_conditional = bool(order.get('trigger_price'))
-            is_market = order_type == '11'
+            order_type = int(order.get('type', 10))
+            is_conditional = order_type == 12 or bool(order.get('trigger_price'))
+            is_market = order_type == 11
 
             if is_conditional:
+                trigger_price = float(order['trigger_price'])
+                current_price = float(order.get('current_price', trigger_price))
                 body = {
-                    'type': '12',
+                    'type': 12,
                     'side': order['side'],
-                    'price': str(order['price']),
+                    'price': str(trigger_price),
                     'amount': int(order['amount']),
-                    'triggerPrice': str(order['trigger_price']),
+                    'triggerPrice': str(trigger_price),
                     'triggerBy': 'last',
-                    'algoType': '10',
-                    'currentPrice': str(order.get('current_price', order['price']))
+                    'algoType': 10,
+                    'currentPrice': str(current_price)
                 }
             elif is_market:
                 body = {
-                    'type': '11',
+                    'type': 11,
                     'side': order['side'],
                     'amount': int(order['amount']),
                     'marketUnit': 'amount'
                 }
             else:
                 body = {
-                    'type': '10',
+                    'type': 10,
                     'side': order['side'],
                     'price': str(order['price']),
                     'amount': int(order['amount'])
                 }
 
-            resp = requests.post(url, json=body, timeout=10)
-            result = resp.json()
+            status_code, result = place_single_order(contract_code, body)
             results.append({
                 'order_type': 'conditional' if is_conditional else ('market' if is_market else 'limit'),
                 'side': order['side'],
                 'price': order.get('price'),
+                'trigger_price': order.get('trigger_price'),
+                'body_sent': body,
                 'result': result,
-                'success': resp.status_code == 200
+                'http_status': status_code,
+                'success': status_code == 200 and 'id' in result
             })
+
         except Exception as e:
-            results.append({'error': str(e), 'success': False})
+            results.append({'error': str(e), 'success': False, 'order': order})
 
     return jsonify({'results': results})
 
