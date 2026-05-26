@@ -2,7 +2,6 @@ import hashlib
 import hmac
 import base64
 import time
-import json
 from urllib.parse import urlencode
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -51,7 +50,9 @@ def place_orders():
             params = generate_signature('POST', path)
             url = f"{BASE_URL}{path}?" + urlencode(params)
 
+            order_type = str(order.get('type', 10))
             is_conditional = bool(order.get('trigger_price'))
+            is_market = order_type == '11'
 
             if is_conditional:
                 body = {
@@ -64,6 +65,13 @@ def place_orders():
                     'algoType': '10',
                     'currentPrice': str(order.get('current_price', order['price']))
                 }
+            elif is_market:
+                body = {
+                    'type': '11',
+                    'side': order['side'],
+                    'amount': int(order['amount']),
+                    'marketUnit': 'amount'
+                }
             else:
                 body = {
                     'type': '10',
@@ -75,9 +83,9 @@ def place_orders():
             resp = requests.post(url, json=body, timeout=10)
             result = resp.json()
             results.append({
-                'order_type': 'conditional' if is_conditional else 'limit',
+                'order_type': 'conditional' if is_conditional else ('market' if is_market else 'limit'),
                 'side': order['side'],
-                'price': order['price'],
+                'price': order.get('price'),
                 'result': result,
                 'success': resp.status_code == 200
             })
