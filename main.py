@@ -7,6 +7,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 import os
+import json
 
 app = Flask(__name__)
 CORS(app)
@@ -55,33 +56,29 @@ def place_orders():
         try:
             order_type = int(order.get('type', 10))
             is_market = order_type == 11
-            is_plan = order_type == 12 and order.get('side', '').startswith('open')
-            is_conditional = order_type == 12 and order.get('side', '').startswith('close')
+            is_plan_open = order_type == 12 and order.get('side', '').startswith('open')
+            is_plan_close = order_type == 12 and order.get('side', '').startswith('close')
 
-            if is_plan:
+            if is_plan_open:
                 trigger_price = float(order['trigger_price'])
                 current_price = float(order.get('current_price', trigger_price))
                 body = {
                     'type': 12,
                     'side': order['side'],
-                    'price': str(trigger_price),
                     'amount': int(order['amount']),
                     'triggerPrice': str(trigger_price),
                     'triggerBy': 'last',
-                    'algoType': 10,
                     'currentPrice': str(current_price)
                 }
-            elif is_conditional:
+            elif is_plan_close:
                 trigger_price = float(order['trigger_price'])
                 current_price = float(order.get('current_price', trigger_price))
                 body = {
                     'type': 12,
                     'side': order['side'],
-                    'price': str(trigger_price),
                     'amount': int(order['amount']),
                     'triggerPrice': str(trigger_price),
                     'triggerBy': 'last',
-                    'algoType': 10,
                     'currentPrice': str(current_price)
                 }
             elif is_market:
@@ -100,11 +97,11 @@ def place_orders():
                 }
 
             status_code, result = place_single_order(contract_code, body)
+            print(f"Order body: {json.dumps(body)}")
+            print(f"Result: {json.dumps(result)}")
             results.append({
-                'order_type': 'plan' if is_plan else ('conditional' if is_conditional else ('market' if is_market else 'limit')),
+                'order_type': 'plan_open' if is_plan_open else ('plan_close' if is_plan_close else ('market' if is_market else 'limit')),
                 'side': order['side'],
-                'price': order.get('price'),
-                'trigger_price': order.get('trigger_price'),
                 'body_sent': body,
                 'result': result,
                 'http_status': status_code,
@@ -112,7 +109,7 @@ def place_orders():
             })
 
         except Exception as e:
-            results.append({'error': str(e), 'success': False, 'order': order})
+            results.append({'error': str(e), 'success': False})
 
     return jsonify({'results': results})
 
