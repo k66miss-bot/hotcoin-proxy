@@ -54,10 +54,24 @@ def place_orders():
     for order in orders:
         try:
             order_type = int(order.get('type', 10))
-            is_conditional = order_type == 12 or bool(order.get('trigger_price'))
             is_market = order_type == 11
+            is_plan = order_type == 12 and order.get('side', '').startswith('open')
+            is_conditional = order_type == 12 and order.get('side', '').startswith('close')
 
-            if is_conditional:
+            if is_plan:
+                trigger_price = float(order['trigger_price'])
+                current_price = float(order.get('current_price', trigger_price))
+                body = {
+                    'type': 12,
+                    'side': order['side'],
+                    'price': str(trigger_price),
+                    'amount': int(order['amount']),
+                    'triggerPrice': str(trigger_price),
+                    'triggerBy': 'last',
+                    'algoType': 10,
+                    'currentPrice': str(current_price)
+                }
+            elif is_conditional:
                 trigger_price = float(order['trigger_price'])
                 current_price = float(order.get('current_price', trigger_price))
                 body = {
@@ -87,14 +101,14 @@ def place_orders():
 
             status_code, result = place_single_order(contract_code, body)
             results.append({
-                'order_type': 'conditional' if is_conditional else ('market' if is_market else 'limit'),
+                'order_type': 'plan' if is_plan else ('conditional' if is_conditional else ('market' if is_market else 'limit')),
                 'side': order['side'],
                 'price': order.get('price'),
                 'trigger_price': order.get('trigger_price'),
                 'body_sent': body,
                 'result': result,
                 'http_status': status_code,
-                'success': status_code == 200 and 'id' in result
+                'success': status_code == 200 and ('id' in result)
             })
 
         except Exception as e:
