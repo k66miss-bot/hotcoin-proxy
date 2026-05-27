@@ -65,9 +65,11 @@ def place_orders():
                 body = {
                     'type': 12,
                     'side': order['side'],
+                    'price': str(trigger_price),
                     'amount': int(order['amount']),
                     'triggerPrice': str(trigger_price),
                     'triggerBy': 'last',
+                    'algoType': 10,
                     'currentPrice': str(current_price)
                 }
             elif is_plan_close:
@@ -76,9 +78,11 @@ def place_orders():
                 body = {
                     'type': 12,
                     'side': order['side'],
+                    'price': str(trigger_price),
                     'amount': int(order['amount']),
                     'triggerPrice': str(trigger_price),
                     'triggerBy': 'last',
+                    'algoType': 10,
                     'currentPrice': str(current_price)
                 }
             elif is_market:
@@ -97,8 +101,8 @@ def place_orders():
                 }
 
             status_code, result = place_single_order(contract_code, body)
-            print(f"Order body: {json.dumps(body)}")
-            print(f"Result: {json.dumps(result)}")
+            print(f"Body: {json.dumps(body, ensure_ascii=False)}")
+            print(f"Result: {json.dumps(result, ensure_ascii=False)}")
             results.append({
                 'order_type': 'plan_open' if is_plan_open else ('plan_close' if is_plan_close else ('market' if is_market else 'limit')),
                 'side': order['side'],
