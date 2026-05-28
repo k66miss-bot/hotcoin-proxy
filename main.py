@@ -64,9 +64,11 @@ def place_orders():
                 body = {
                     'type': 12,
                     'side': order['side'],
+                    'price': str(trigger_price),
                     'amount': int(order['amount']),
                     'triggerPrice': str(trigger_price),
                     'triggerBy': 'last',
+                    'algoType': 11,
                     'currentPrice': str(current_price)
                 }
             elif is_market:
