@@ -60,7 +60,6 @@ def place_orders():
 
             if is_plan:
                 trigger_price = float(order['trigger_price'])
-                current_price = float(order.get('current_price', trigger_price))
                 body = {
                     'type': 12,
                     'side': order['side'],
@@ -68,8 +67,7 @@ def place_orders():
                     'amount': int(order['amount']),
                     'triggerPrice': str(trigger_price),
                     'triggerBy': 'last',
-                    'algoType': 11,
-                    'currentPrice': str(current_price)
+                    'algoType': 11
                 }
             elif is_market:
                 body = {
