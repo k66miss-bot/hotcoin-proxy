@@ -38,36 +38,4 @@ def place_single_order(contract_code, body):
     path = f'/api/v1/perpetual/products/{contract_code}/order'
     params = generate_signature('POST', path)
     url = f"{BASE_URL}{path}?" + urlencode(params)
-    resp = requests.post(url, json=body, timeout=10)
-    return resp.status_code, resp.json()
-
-@app.route('/health', methods=['GET'])
-def health():
-    return jsonify({'status': 'ok', 'access_key_set': bool(ACCESS_KEY)})
-
-@app.route('/get_positions', methods=['POST'])
-def get_positions():
-    data = request.json
-    contract_code = data.get('contract_code', 'ethusdt')
-    try:
-        path = f'/api/v1/perpetual/position/{contract_code}/list'
-        params = generate_signature('GET', path)
-        url = f"{BASE_URL}{path}?" + urlencode(params)
-        resp = requests.get(url, timeout=10)
-        result = resp.json()
-        print(f"Positions: {json.dumps(result, ensure_ascii=False)}")
-
-        positions = []
-        if isinstance(result, list):
-            raw = result
-        elif isinstance(result, dict):
-            raw = result.get('data', result.get('list', []))
-        else:
-            raw = []
-
-        for p in raw:
-            if float(p.get('amount', 0)) > 0:
-                positions.append({
-                    'side': p.get('side', ''),
-                    'amount': p.get('amount', '0'),
-                    'avgPrice':
+    resp = request
