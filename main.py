@@ -1,8 +1,3 @@
-好，你已经在编辑页面了，内容是空的！
-
-点编辑框里面，然后按 **Ctrl+A** 全选，再按 **Delete** 清空，然后把下面内容全选复制粘贴进去，最后点**提交更改**：点编辑框，**Ctrl+A** 全选删除，然后粘贴这个：
-
-```python
 import hashlib
 import hmac
 import base64
@@ -163,4 +158,3 @@ def cancel_all():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-```
