@@ -1,3 +1,8 @@
+好，你已经在编辑页面了，内容是空的！
+
+点编辑框里面，然后按 **Ctrl+A** 全选，再按 **Delete** 清空，然后把下面内容全选复制粘贴进去，最后点**提交更改**：点编辑框，**Ctrl+A** 全选删除，然后粘贴这个：
+
+```python
 import hashlib
 import hmac
 import base64
@@ -114,4 +119,48 @@ def place_orders():
             elif is_market:
                 body = {
                     'type': 11,
-                    'sid
+                    'side': order['side'],
+                    'amount': int(order['amount']),
+                    'marketUnit': 'amount'
+                }
+            else:
+                body = {
+                    'type': 10,
+                    'side': order['side'],
+                    'price': str(order['price']),
+                    'amount': int(order['amount'])
+                }
+            status_code, result = place_single_order(contract_code, body)
+            print(f"Body: {json.dumps(body, ensure_ascii=False)}")
+            print(f"Result: {json.dumps(result, ensure_ascii=False)}")
+            results.append({
+                'order_type': 'plan' if is_plan else ('market' if is_market else 'limit'),
+                'side': order['side'],
+                'body_sent': body,
+                'result': result,
+                'http_status': status_code,
+                'success': status_code == 200 and ('id' in result)
+            })
+        except Exception as e:
+            results.append({'error': str(e), 'success': False})
+    return jsonify({'results': results})
+
+@app.route('/cancel_all', methods=['POST', 'OPTIONS'])
+def cancel_all():
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200
+    data = request.json
+    contract_code = data.get('contract_code', 'ethusdt')
+    try:
+        path = f'/api/v1/perpetual/products/{contract_code}/orders'
+        params = generate_signature('DELETE', path)
+        url = f"{BASE_URL}{path}?" + urlencode(params)
+        resp = requests.delete(url, timeout=10)
+        return jsonify(resp.json())
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
+```
